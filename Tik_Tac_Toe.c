@@ -11,9 +11,12 @@ void saveResult(char p1[], char p2[], char winner[], int p1_score, int p2_score,
 void loadScore(int *p1_score, int *p2_score, int *draw);
 void resetBoard();
 void playGamePvP(char player1[], char player2[], int *p1_score, int *p2_score, int *draw);
-void playGamePvC(char player[], char computer[], int *p1_score, int *p2_score, int *draw);
+void playGamePvC(char player[], char computer[], int *p1_score, int *p2_score, int *draw, int hardMode);
 int getEasyMove();
-void showScoreboard(); 
+int getBestMove();
+int minimax(char b[], int depth, int isMaximizing);
+int checkWinBoard(char b[]);
+void showScoreboard();
 
 int main()
 {
@@ -25,9 +28,10 @@ int main()
     {
         printf("\n=== TIC TAC TOE MENU ===\n");
         printf("1. Player vs Player\n");
-        printf("2. Player vs Computer (Easy)\n");
-        printf("3. View Scoreboard\n");  
-        printf("4. Exit\n");
+        printf("2. Player vs Computer (Easy)\n");  
+        printf("3. Player vs Computer (Hard)\n");
+        printf("4. View Scoreboard\n");  
+        printf("5. Exit\n");
         printf("Choose option: ");
         int choice;
         scanf("%d",&choice);
@@ -35,24 +39,35 @@ int main()
         if(choice == 1)
         {
             char player1[50], player2[50];
-            printf("Enter Player 1 Name: "); scanf("%s", player1);
-            printf("Enter Player 2 Name: "); scanf("%s", player2);
+            printf("Enter Player 1 Name: ");
+            scanf("%s", player1);
+            printf("Enter Player 2 Name: "); 
+            scanf("%s", player2);
 
             playGamePvP(player1, player2, &p1_score, &p2_score, &draw);
         }
         else if(choice == 2)
         {
             char player[50], computer[50];
-            printf("Enter Your Name: "); scanf("%s", player);
+            printf("Enter Your Name: "); 
+            scanf("%s", player);
             strcpy(computer, "Computer");
 
-            playGamePvC(player, computer, &p1_score, &p2_score, &draw);
+            playGamePvC(player, computer, &p1_score, &p2_score, &draw, 0); 
         }
         else if(choice == 3)
         {
-            showScoreboard();  
+            char player[50], computer[50];
+            printf("Enter Your Name: "); scanf("%s", player);
+            strcpy(computer, "Computer");
+
+            playGamePvC(player, computer, &p1_score, &p2_score, &draw, 1); 
         }
         else if(choice == 4)
+        {
+            showScoreboard();  
+        }
+        else if(choice == 5)
         {
             printf("Final Score:\n");
             printf("%s Wins: %d\n", "Player1", p1_score);
@@ -122,8 +137,7 @@ void playGamePvP(char player1[], char player2[], int *p1_score, int *p2_score, i
     }
 }
 
-
-void playGamePvC(char player[], char computer[], int *p1_score, int *p2_score, int *draw)
+void playGamePvC(char player[], char computer[], int *p1_score, int *p2_score, int *draw, int hardMode)
 {
     resetBoard();
     print_board();
@@ -150,7 +164,9 @@ void playGamePvC(char player[], char computer[], int *p1_score, int *p2_score, i
         else
         {
             printf("\nComputer is making a move...\n");
-            int move = getEasyMove();
+            int move;
+            if(hardMode) move = getBestMove();
+            else move = getEasyMove();
             board[move] = 'O';
             printf("Computer chose: %d\n", move);
         }
@@ -185,7 +201,6 @@ void playGamePvC(char player[], char computer[], int *p1_score, int *p2_score, i
     }
 }
 
-
 int getEasyMove()
 {
     int freeCells[9], count=0;
@@ -199,10 +214,111 @@ int getEasyMove()
     return freeCells[rand()%count];
 }
 
+int minimax(char b[], int depth, int isMaximizing) {
+    int score = checkWinBoard(b);
+    if(score == 1) return -10 + depth;   
+    if(score == 2) return 10 - depth;    
+    if(score == 0) return 0;            
+
+    if(isMaximizing) {
+        int best = -1000;
+        for(int i=1;i<=9;i++) {
+            if(b[i] != 'X' && b[i] != 'O') {
+                char backup = b[i];
+                b[i] = 'O';
+                int val = minimax(b, depth+1, 0);
+                best = (val > best) ? val : best;
+                b[i] = backup;
+            }
+        }
+        return best;
+    } else {
+        int best = 1000;
+        for(int i=1;i<=9;i++) {
+            if(b[i] != 'X' && b[i] != 'O') {
+                char backup = b[i];
+                b[i] = 'X';
+                int val = minimax(b, depth+1, 1);
+                best = (val < best) ? val : best;
+                b[i] = backup;
+            }
+        }
+        return best;
+    }
+}
+
+int getBestMove() {
+    int bestVal = -1000;
+    int bestMove = -1;
+
+    for(int i=1;i<=9;i++) {
+        if(board[i] != 'X' && board[i] != 'O') {
+            char backup = board[i];
+            board[i] = 'O';
+            int moveVal = minimax(board, 0, 0);
+            board[i] = backup;
+
+            if(moveVal > bestVal) {
+                bestMove = i;
+                bestVal = moveVal;
+            }
+        }
+    }
+    return bestMove;
+}
+
+int checkWinBoard(char b[]) {
+    if(b[1]==b[2] && b[2]==b[3])
+    {
+        if(b[1]=='X') return 1; else return 2;
+    }
+    if(b[4]==b[5] && b[5]==b[6])
+    {
+        if(b[4]=='X') return 1; else return 2;
+    }
+    if(b[7]==b[8] && b[8]==b[9])
+    {
+        if(b[7]=='X') return 1; else return 2;
+    }
+
+    if(b[1]==b[4] && b[4]==b[7])
+    {
+        if(b[1]=='X') return 1; else return 2;
+    }
+    if(b[2]==b[5] && b[5]==b[8])
+    {
+        if(b[2]=='X') return 1; else return 2;
+    }
+    if(b[3]==b[6] && b[6]==b[9])
+    {
+        if(b[3]=='X') return 1; else return 2;
+    }
+
+    if(b[1]==b[5] && b[5]==b[9])
+    {
+        if(b[1]=='X') return 1; else return 2;
+    }
+    if(b[3]==b[5] && b[5]==b[7])
+    {
+        if(b[3]=='X') return 1; else return 2;
+    }
+
+    int filled = 1;
+    for(int i=1;i<=9;i++)
+    {
+        if(b[i]!='X' && b[i]!='O')
+         {
+            filled=0;
+             break;
+        }
+    }
+    if(filled) return 0;
+    return -1;
+}
 
 void print_board()
 {
-    system("cls");
+    system("cls");  
 
     printf("\n\n==== TIC TAC TOE ====\n\n");
     printf("     |     |   \n");
@@ -216,36 +332,42 @@ void print_board()
     printf("     |     |   \n");
 }
 
-
 void resetBoard()
 {
     for(int i=1;i<=9;i++) board[i] = '0' + i;
 }
 
-
 int checkWin()
 {
-    if(board[1]==board[2] && board[2]==board[3]) return 1;
-    if(board[4]==board[5] && board[5]==board[6]) return 1;
-    if(board[7]==board[8] && board[8]==board[9]) return 1;
+    if(board[1]==board[2] && board[2]==board[3]) 
+    return 1;
+    if(board[4]==board[5] && board[5]==board[6])
+    return 1;
+    if(board[7]==board[8] && board[8]==board[9]) 
+    return 1;
 
-    if(board[1]==board[4] && board[4]==board[7]) return 1;
-    if(board[2]==board[5] && board[5]==board[8]) return 1;
-    if(board[3]==board[6] && board[6]==board[9]) return 1;
+    if(board[1]==board[4] && board[4]==board[7]) 
+    return 1;
+    if(board[2]==board[5] && board[5]==board[8]) 
+    return 1;
+    if(board[3]==board[6] && board[6]==board[9]) 
+    return 1;
 
-    if(board[1]==board[5] && board[5]==board[9]) return 1;
-    if(board[3]==board[5] && board[5]==board[7]) return 1;
+    if(board[1]==board[5] && board[5]==board[9]) 
+    return 1;
+    if(board[3]==board[5] && board[5]==board[7]) 
+    return 1;
 
     int count = 0;
     for(int i=1; i<=9; i++){
-        if(board[i]=='X' || board[i]=='O') count++;
+        if(board[i]=='X' || board[i]=='O') 
+        count++;
     }
 
     if(count == 9) return 0;
 
     return -1;
 }
-
 
 void saveResult(char p1[], char p2[], char winner[], int p1_score, int p2_score, int draw)
 {
@@ -282,7 +404,6 @@ void loadScore(int *p1, int *p2, int *dr)
     fclose(fp);
 }
 
-
 void showScoreboard()
 {
     FILE *fp = fopen("game_result.txt", "r");
@@ -294,7 +415,6 @@ void showScoreboard()
 
     printf("\n=== SCOREBOARD ===\n");
     
-
     char line[200];
     while(fgets(line, sizeof(line), fp))
     {
